@@ -1,6 +1,7 @@
 import requests
 import config
 import csv
+import os
 
 from datetime import datetime
 
@@ -18,17 +19,18 @@ def start_process():
 
 
 def load_wallets():
-    with open("wallets.csv", mode="r") as file:
-        r = csv.DictReader(file)
-        for wallet in r:
-            wallets[wallet["address"]] = {
-                'address': wallet['address'],
-                'n_tx': wallet['n_tx'],
-                't_r': wallet['t_r'],
-                't_s': wallet['t_s'],
-                'b': float(wallet['b']),
-                'lt': wallet["lt"],
-            }
+    if os.path.exists("wallets.csv"):
+        with open("wallets.csv", mode="r") as file:
+            r = csv.DictReader(file)
+            for wallet in r:
+                wallets[wallet["address"]] = {
+                    'address': wallet['address'],
+                    'n_tx': wallet['n_tx'],
+                    't_r': wallet['t_r'],
+                    't_s': wallet['t_s'],
+                    'b': float(wallet['b']),
+                    'lt': wallet["lt"],
+                }
 
 
 def save_wallets():
