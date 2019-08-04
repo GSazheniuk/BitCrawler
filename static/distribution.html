@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta http-equiv="cache-control" content="no-cache" />
+<title></title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css">
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/paper-css/0.4.0/paper.css"> -->
+
+<script src="https://code.jquery.com/jquery-2.2.3.min.js" type="text/javascript"></script>
+<script src="http://d3js.org/d3.v4.min.js"></script>
+<script src="http://d3js.org/d3-scale-chromatic.v0.3.min.js"></script>
+<style>
+body { margin: 0;
+	font-family: Calibri;
+}
+.sheet {
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+  page-break-after: always;
+}
+.grid_x line {
+    stroke: grey;
+    stroke-opacity: 0.9;
+    shape-rendering: crispEdges;
+    stroke-dasharray: 2;
+	stroke-width: 2;
+}
+.grid_y line {
+    stroke: grey;
+    stroke-opacity: 0.9;
+    shape-rendering: crispEdges;
+    stroke-dasharray: 4;
+	stroke-width: 2;
+}
+
+.axis--y line {
+	stroke-width: 0;
+}
+
+.domain {
+	stroke-width: 0;
+}
+
+.header_label {
+	font-family: Calibri;
+	font-size: 24px;
+}
+
+.label {
+	font-family: Calibri;
+	font-weight: bold;
+	font-size: 10px;
+}
+
+.bot_label {
+	font-family: Calibri;
+	font-weight: bold;
+	font-size: 10px;
+}
+
+.top5label {
+	font-family: Calibri;
+	font-size: 22px;
+	fill: gray;
+}
+
+.top80label {
+	font-family: Calibri;
+	font-size: 12px;
+	font-weight: bold;
+}
+
+.axis-label {
+	font-family: Calibri;
+	font-size: 20px;
+}
+</style>
+</head>
+<body class="letter landscape">
+    <section class="sheet page">
+        <div class='content'>
+        </div>
+    </section>
+
+
+    <script type="text/javascript">
+		var maximums = {}
+			, maximum = 0
+			, colors = ["#FF693E", "#E88F36", "#FFCC48", "#E8D936", "#B2FF38", "#5DFF41", "#38E883", "#4AFFFA", "#3893E8", "#3B3DFF", "#2B3B75"];
+
+		var scale = 2.2;
+
+		var f = d3.format("0.0%")
+		  , f2 = d3.format("0.2%")
+		  , f3 = d3.format("0.3s")
+		  , f4 = d3.format(",d");
+
+		var margin = { top: 120, right: 200, bottom: 100, left: 30 };
+
+		//var width = 1600 - margin.left - margin.right,
+		//    height = 1000 - margin.top - margin.bottom,
+		//    opacity = 0.85;
+
+		var width = 1600 - margin.left - margin.right,
+			height = 950 - margin.top - margin.bottom,
+			opacity = 1;
+
+		var bb1, bb2, texts=[], rects=[], my_label = {};
+
+		var svg = d3.select(".content").append("svg").attr("width", 3300).attr("height", 2350)
+			.attr("viewBox", "0 0 1400 1100");
+			// .attr("transform", "scale(" + scale + ") translate(825, 550)");
+
+		var n_div = d3.select("body").append("div").attr("class", "narrative_text");
+
+		var x = d3.scaleLinear().range([0, width]),
+			y = d3.scaleLinear().range([height, 0]),
+			colorScale = d3.scaleSequential(d3.interpolateInferno)
+				.domain([0, height]);
+
+		var area = d3.area()
+			.curve(d3.curveLinear)
+			.x(function (d, i) { return x(parseFloat(d.cnt_perc)); })
+			.y0(function (d) { return y(0); })
+			.y1(function (d) { return y(parseFloat(d.aum_perc_total)); }),
+			area2 = d3.area()
+			.curve(d3.curveLinear)
+			.x(function (d, i) { return x(parseFloat(d.cnt_perc)); })
+			.y0(function (d) { return y(0); })
+			.y1(function (d) { return y(parseFloat(d.aum_perc_my)*2); }),
+			area3 = d3.area()
+			.curve(d3.curveLinear)
+			.x(function (d, i) { return x(parseFloat(d.cnt_perc)); })
+			.y0(function (d) { return y(0); })
+			.y1(function (d) { return y(parseFloat(d.aum_perc_my)); });
+
+		var g = svg.append("g")
+			.attr("class", "context")
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		g.append("rect")
+			.attr("width", width)
+			.attr("height", height)
+			//.style("stroke", "#000")
+			//.style("stroke-width", 1)
+			.style("shape-rendering", "crispedges")
+			.style("fill", "#F0F0F0");
+
+		d3.json("/advisor_data_full", function (error, root) {
+			if (error) throw error;
+
+			var data = root.data
+				, aum_percs = root.aum_groups_total
+				, cnt_percs = root.cnt_groups
+				, min_aum_ig = root.min_aum_in_group
+				, aum_percs_ig = root.aum_in_groups;
+
+			console.log(aum_percs);
+			
+			var xAxis = d3.axisBottom(x).tickValues(cnt_percs).tickFormat(function (d) { return f(d); });
+			var yAxis = d3.axisLeft(y).tickValues(aum_percs).tickFormat(function (d) { return f2(d); });
+			
+			x.domain([0, 1]);
+//			y.domain([0, 1]).nice();
+
+			g.append('g')
+				.attr("class", "axis axis--x")
+				.attr("transform", "translate(0," + height + ")")
+				.call(xAxis);
+
+			g.append('g')
+				.attr("class", "axis axis--y")
+				.attr("transform", "translate(0, 0)")
+				.call(yAxis);
+
+			g.append("g")
+				.attr("class", "grid_x")
+				.call(yAxis.ticks().tickSize(-width).tickFormat(""))
+				.selectAll("path")
+				.style("stroke", "none");
+
+			// Add area for all
+			g.append('path')
+				.datum(data)
+				.attr('d', area)
+				.attr('class', "area")
+				//.attr('fill', "#BEEB9F")
+				.attr('fill', "#6BB983")
+				.attr('fill-opacity', opacity);
+			
+			g.append('path')
+				.datum(data)
+				.attr('d', area2)
+				.attr('class', "area")
+				//.attr('fill', "#79BD8F")
+				.attr('fill', "#008773")
+				.attr('fill-opacity', opacity);
+				
+			// Add Bars
+			// var bars = g.selectAll(".bars")
+			// 	.data(data)
+			//   .enter().append("rect")
+			// 	.attr("class", "bars")
+			// 	.attr("x", function(d, i) { return x(parseFloat(d.cnt_perc)); })
+			// 	.attr("y", function(d, i) { return y(parseFloat(d.aum_perc_total)); })
+			// 	.attr("height", 1)
+			// 	.attr("width", function(d, i) { return width - x(parseFloat(d.cnt_perc)); })
+			// 	.style("fill", function(d, i ) { return colorScale(height - y(parseFloat(d.aum_perc_total))); });
+
+			g.append('path')
+				.datum(data)
+				.attr('d', area3)
+				.attr('class', "area")
+				//.attr('fill', "#00A388")
+				.attr('fill', "#1C3341")
+				.attr('fill-opacity', opacity);
+
+		});
+		
+		function wrap(text, width) {
+			text.each(function () {
+				var text = d3.select(this),
+					words = text.text().split(/\s+/).reverse(),
+					word,
+					line = [],
+					lineNumber = 0,
+					lineHeight = 1, // ems
+					y = text.attr("y"),
+					x = text.attr("x"),
+					dy = 0,
+					tspan = text.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
+				while (word = words.pop()) {
+					line.push(word);
+					tspan.text(line.join(" "));
+					if (tspan.node().getComputedTextLength() > width) {
+						line.pop();
+						tspan.text(line.join(" "));
+						line = [word];
+						tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", lineHeight + "em").text(word);
+						lineHeight++;
+					}
+				}
+			});
+		}
+		
+		function add_rect(rect) {
+			var a = {};
+			a.rect = rect;
+			rects.push(a);
+		}
+	</script>
+</body>
+
+</html>
