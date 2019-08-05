@@ -17,12 +17,14 @@ def process_queue():
         raw_wallet = SharedData.get_raw_wallet(current_id)
         if raw_wallet:
             SharedData.analyze_wallet(raw_wallet)
+            SharedData.total_analyzed += 1
             res = {
                 "wallet": SharedData.wallets[current_id],
                 "status": "DONE"
             }
             Waiters.all_waiters.deliver_to_waiter(Waiters.WAIT_FOR_QUEUE, res)
         else:
+            SharedData.total_err += 1
             res = {
                 "wallet": {"address": current_id},
                 "status": "ERROR"
@@ -30,20 +32,21 @@ def process_queue():
             Waiters.all_waiters.deliver_to_waiter(Waiters.WAIT_FOR_QUEUE, res)
 
         SharedData.queue.remove(current_id)
+        if SharedData.total_analyzed % 100 == 0:
+            SharedData.save_wallets()
+            print(SharedData.total_analyzed, " analyzed, "
+                  , SharedData.total_err, " errors, "
+                  , SharedData.total_saved, " saved, "
+                  , len(SharedData.queue), " in queue."
+                  )
         SharedData.can_process = True
-
-
-def save_result():
-    SharedData.save_wallets()
-    pass
 
 
 if __name__ == '__main__':
     try:
         SharedData.load_wallets()
         SharedData.start_process()
-        rt = RepeatedTimer(2, process_queue)
-        rt2 = RepeatedTimer(60, save_result)
+        rt = RepeatedTimer(1, process_queue)
         fws = FrontWatchServer()
         fws.run()
     except KeyboardInterrupt:

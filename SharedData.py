@@ -9,20 +9,24 @@ from datetime import datetime
 can_process = True
 queue = set()
 wallets = {}
+total_analyzed = 0
+total_err = 0
+total_saved = 0
 
 
 def start_process():
     block = get_block()
     analyze_block(block)
-    print(wallets)
     pass
 
 
 def load_wallets():
+    global total_saved
     if os.path.exists("wallets.csv"):
         with open("wallets.csv", mode="r") as file:
             r = csv.DictReader(file)
             for wallet in r:
+                total_saved += 1
                 wallets[wallet["address"]] = {
                     'address': wallet['address'],
                     'n_tx': wallet['n_tx'],
@@ -34,14 +38,15 @@ def load_wallets():
 
 
 def save_wallets():
+    global total_saved
     with open("wallets.csv", mode="w", newline='') as file:
         data = [wallets[w] for w in wallets.copy() if wallets[w]['b'] > 0]
-        if len(data) < 1:
+        total_saved = len(data)
+        if total_saved < 1:
             return
         w = csv.DictWriter(file, [header for header in data[0]])
         w.writeheader()
         w.writerows(data)
-        print(len(data), " wallets saved. ", len(queue), " in queue.")
         pass
 
 
