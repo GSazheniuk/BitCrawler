@@ -77,7 +77,7 @@ def analyze_block(block):
                 continue
 
             new_addr = ins['prev_out']['addr']
-            if new_addr not in queue and new_addr not in wallets:
+            if new_addr not in queue and new_addr not in wallets and len(queue) < 10000:
                 queue.add(new_addr)
                 pass
             pass
@@ -86,7 +86,7 @@ def analyze_block(block):
             if 'addr' not in outs:
                 continue
             new_addr = outs['addr']
-            if new_addr not in queue and new_addr not in wallets:
+            if new_addr not in queue and new_addr not in wallets and len(queue) < 10000:
                 queue.add(new_addr)
                 pass
             pass
@@ -126,7 +126,7 @@ def analyze_wallet(w_raw):
                 continue
             if 'addr' in inp['prev_out']:
                 new_addr = inp['prev_out']['addr']
-                if new_addr not in queue and new_addr not in wallets:
+                if new_addr not in queue and new_addr not in wallets and len(queue) < 10000:
                     queue.add(new_addr)
                     pass
                 pass
@@ -137,7 +137,7 @@ def analyze_wallet(w_raw):
             if 'addr' not in outp or outp['value'] == 0:
                 continue
             new_addr = outp['addr']
-            if new_addr not in queue and new_addr not in wallets:
+            if new_addr not in queue and new_addr not in wallets and len(queue) < 10000:
                 queue.add(new_addr)
                 pass
             pass
