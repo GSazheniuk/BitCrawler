@@ -2,6 +2,7 @@ import requests
 import config
 import csv
 import os
+import pandas as pd
 
 from datetime import datetime
 
@@ -143,3 +144,12 @@ def analyze_wallet(w_raw):
             pass
         pass
     pass
+
+
+def prepare_data():
+    df = pd.DataFrame(wallets)
+    bins = [x / 10 for x in range(10)] + [0.95, 1]
+    df['cnt_group'] = pd.qcut(x=df, q=bins)
+    res = pd.DataFrame(bins)
+    res['bal'] = df['b'].groupby(df['cnt_group']).transform('sum')
+    return res.to_dict()

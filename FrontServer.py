@@ -50,6 +50,12 @@ class GetQueueHandler(tornado.web.RequestHandler):
         pass
 
 
+class GetDataHandler(tornado.web.RequestHandler):
+    @gen.coroutine
+    def get(self):
+        return json.dumps(SharedData.prepare_data())
+
+
 class FrontWatchServer:
     def __init__(self):
         self.app = tornado.web.Application(
@@ -58,6 +64,7 @@ class FrontWatchServer:
                 (r"/default.html", RootHandler),
                 (r"/queue", GetQueueHandler),
                 (r"/getIds", GetAllIdsHandler),
+                (r"/data", GetDataHandler),
                 (r"/getDistributionData", GetDistribDataHandler),
             ],
             cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",

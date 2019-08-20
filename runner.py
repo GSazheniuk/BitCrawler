@@ -45,8 +45,8 @@ def process_queue():
 if __name__ == '__main__':
     try:
         SharedData.load_wallets()
-        SharedData.start_process()
-        rt = RepeatedTimer(1, process_queue)
+        # SharedData.start_process()
+        # rt = RepeatedTimer(1, process_queue)
         fws = FrontWatchServer()
         fws.run()
     except KeyboardInterrupt:
